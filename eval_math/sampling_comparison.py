@@ -128,17 +128,17 @@ class SamplingComparison:
         # Assuming evaluator is not needed here anymore, or handle its init
         # self.evaluator = LLMEvaluator(use_nemotron=True, use_rise=False)
 
-        # BOS Prior Parameters (can be tuned)
-        self.alpha0 = 0.5
-        self.nu0 = 1.0
+        # BOS Prior Parameters (fixed for all experiments)
+        self.alpha0 = -0.5
+        self.nu0 = 0
         self.beta0 = 1.0
         self.mu0 = 0.0
 
         # Pre-compute h_matrix for dynamic sampling
         self.G = 200  # Grid size
-        self.n = 30   # Max iterations
+        self.n = 30   # get aligned with Best of N, 32, 16, 28
         self.h_matrix, self.z_grid = self._compute_h_matrix()
-
+    # run three times for h_16, h_24, h_32. 
     def _compute_h_matrix(self):
         """
         Compute the h-index matrix for dynamic sampling.
@@ -249,7 +249,7 @@ class SamplingComparison:
             # Calculate h-value (stopping threshold)
             if use_myopic_h:
                 # Greedy uses myopic H value directly
-                h_val = H_myopic_jit(recall=1, sigma_flag=0, z=z_val, k=i, alpha0=self.alpha0)
+                h_val = H_myopic_jit(recall=1, sigma_flag=0, z=z_val, k= n_total - 1, alpha0=self.alpha0)
             else:
                 # Dynamic uses full DP solution
                 h_val = self._get_h_value(k=i, z_val=z_val)
@@ -262,7 +262,7 @@ class SamplingComparison:
                 # Continue: process next sample
                 new_reward = rewards[i]
 
-                # Update parameters (pass sigma_k which is std dev)
+                # Update parameters (pass sigma_k which is std dev) # add if for adpative
                 z_k, mu_k, sigma_k = update_parameters(
                     z_k, mu_k, sigma_k, new_reward, i, # k is the index (number samples before this one)
                     self.alpha0, self.nu0, self.beta0, self.mu0
